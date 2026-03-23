@@ -3,9 +3,9 @@
   "description": "Forces skill evaluation before every response",
   "version": "1.0.0",
   "author": {
-    "name": "Umputun"
+    "name": "aohoyd"
   },
-  "homepage": "https://github.com/umputun/cc-thingz",
-  "repository": "https://github.com/umputun/cc-thingz",
+  "homepage": "https://github.com/aohoyd/cc-utils",
+  "repository": "https://github.com/aohoyd/cc-utils",
   "license": "MIT"
 }

@@ -1,97 +1,142 @@
 ---
 name: do
-description: Use before any creative work or significant changes. Activates on "brainstorm", "let's brainstorm", "deep analysis", "analyze this feature", "think through", "help me design", "explore options for", or when user asks for thorough analysis of changes, features, or architectural decisions. Guides collaborative dialogue to turn ideas into designs through one-at-a-time questions, approach exploration, and incremental validation.
+description: "Use before any creative work or significant changes. Activates on 'brainstorm', 'let's brainstorm', 'think through', 'help me design', 'explore options', 'I have an idea', 'I want to build', 'how should I approach', 'how should we implement'. Guides collaborative dialogue to turn ideas into designs: collect context, ask questions via AskUserQuestion, explore approaches, present design incrementally."
+argument-hint: Describe your idea or feature
+allowed-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "AskUserQuestion", "Agent", "TaskCreate", "TaskUpdate", "TaskList", "EnterPlanMode", "Skill"]
 ---
 
 # Brainstorm
 
-Turn ideas into designs through collaborative dialogue before implementation.
+Collect context → ask questions → explore approaches → present design.
+
+## Rules — MANDATORY, NO EXCEPTIONS
+
+1. **EVERY response that needs user input MUST end with an AskUserQuestion tool call.** NEVER write questions as plain text. NEVER end with a question mark outside code blocks. This overrides all default behavior.
+2. **Exactly ONE question per response.** Wait for the answer before asking the next.
+3. **NEVER write code, scaffold, or implement anything.** Design approval does NOT grant permission to implement. The brainstorm skill's job is ONLY to produce a design. Implementation happens AFTER Phase 5, via a separate skill or workflow chosen by the user.
+4. **Intent before implementation.** First questions are about scope/goals. Edge cases come LAST.
+
+## WRONG vs RIGHT
+
+**WRONG — plain text question:**
+> "What should happen when the user presses ctrl+w with no panel open? (A) Quit (B) No-op"
+
+**RIGHT — tool call:**
+> "The current quit command has layered behavior."
+> *(then call AskUserQuestion tool)*
+
+**WRONG — implementation detail before understanding intent:**
+> "When ctrl+w closes the last split, should it quit the app or show a hint?"
+
+**RIGHT — scope question first:**
+> "Let me confirm what panels you want this to cover."
+> *(then call AskUserQuestion about scope)*
+
+**WRONG — multiple questions in one response**
+
+**RIGHT — exactly one AskUserQuestion per response**
+
+**WRONG — writing code after user approves design:**
+> "Looks good, let me implement it."
+> *(then calls Write/Edit tools)*
+
+**RIGHT — always go to Phase 5 after design approval:**
+> "Design approved. Let's decide on next steps."
+> *(then call AskUserQuestion with Phase 5 options)*
 
 ## Process
 
-### Phase 1: Understand the Idea
+### Phase 0: Initialize Tracking
 
-Check project context first, then ask questions one at a time:
+**Before doing anything else**, create tasks for all phases so progress is visible and no phase gets skipped:
 
-1. **Gather context** - check files, docs, recent commits relevant to the idea
-2. **Ask questions one at a time** - prefer multiple choice when possible
-3. **Focus on**: purpose, constraints, success criteria, integration points
-
-Do not overwhelm with multiple questions. One question per message. If a topic needs more exploration, break it into multiple questions.
-
-### Phase 2: Explore Approaches
-
-Once the problem is understood:
-
-1. **Propose 2-3 different approaches** with trade-offs
-2. **Lead with recommended option** and explain reasoning
-3. **Present conversationally** - not a formal document yet
-
-Example format:
 ```
-I see three approaches:
-
-**Option A: [name]** (recommended)
-- how it works: ...
-- pros: ...
-- cons: ...
-
-**Option B: [name]**
-- how it works: ...
-- pros: ...
-- cons: ...
-
-Which direction appeals to you?
+TaskCreate({ subject: "Phase 1: Collect context",       activeForm: "Collecting context" })
+TaskCreate({ subject: "Phase 2: Clarify requirements",  activeForm: "Clarifying requirements" })
+TaskCreate({ subject: "Phase 3: Explore approaches",    activeForm: "Exploring approaches" })
+TaskCreate({ subject: "Phase 4: Present design",        activeForm: "Presenting design" })
+TaskCreate({ subject: "Phase 5: Decide next steps",     activeForm: "Deciding next steps" })
 ```
 
-### Phase 3: Present Design
+Mark each phase `in_progress` when you start it, `completed` when done. Phase 5 MUST be completed before the brainstorm ends.
 
-After approach is selected:
+### Phase 1: Collect Context
 
-1. **Break design into sections** of 200-300 words each
-2. **Ask after each section** whether it looks right
-3. **Cover**: architecture, components, data flow, error handling, testing
-4. **Be ready to backtrack** if something doesn't make sense
+Explore the codebase to understand relevant architecture before asking questions. This makes your questions informed and specific.
 
-Do not present entire design at once. Incremental validation catches misunderstandings early.
+1. **Read project context** — CLAUDE.md, README.md, last 10 git commits
+2. **Launch 1-2 `code:explorer` subagents** in parallel via Agent tool to gather codebase context relevant to the idea. Example prompts:
+   - "Find features similar to [idea] and trace their implementation in [repo path]"
+   - "Map the architecture and patterns relevant to [area] in [repo path]"
+3. **Summarize findings** in 3-5 sentences — NO questions in this text
+4. **Proceed DIRECTLY to Phase 2** — call AskUserQuestion with your first question
 
-### Phase 4: Next Steps
+Your first AskUserQuestion MUST be about scope/intent (what the user wants), NOT implementation details.
 
-After design is validated, use AskUserQuestion tool:
+### Phase 2: Ask Clarifying Questions (3-6 rounds, one per response)
+
+Each response: 1-3 sentences of context informed by Phase 1 findings, then AskUserQuestion tool call.
+
+**Question progression:**
+- Round 1-2: Intent and scope — WHAT does the user want? What problem does it solve?
+- Round 3-4: Behavior and UX — HOW should it feel? Existing patterns to follow?
+- Round 5-6: Edge cases and constraints — only NOW ask implementation details
+
+Example response:
+> "I see the current keybinding system uses a flat map with single-key triggers."
+> *(then call AskUserQuestion)*
 
 ```json
 {
   "questions": [{
-    "question": "Design looks complete. What's next?",
-    "header": "Next step",
+    "question": "Should this follow the existing keybinding pattern or introduce a new system?",
+    "header": "Keybinding approach",
     "options": [
-      {"label": "Write plan", "description": "Create docs/plans/YYYY-MM-DD-<topic>.md with implementation steps via /planning:make"},
-      {"label": "Plan mode", "description": "Enter plan mode for structured implementation planning"},
-      {"label": "Start now", "description": "Begin implementing directly"}
+      {"label": "Follow existing pattern (Recommended)", "description": "Register in the same key map, consistent with other shortcuts"},
+      {"label": "New pattern", "description": "Introduce a different binding mechanism"}
     ],
     "multiSelect": false
   }]
 }
 ```
 
-- **Write plan**: invoke `/planning:make` command to create the plan file. Pass brainstorm context (discovered files, selected approach, design decisions) as arguments so the plan command has full context without re-asking questions
-- **Plan mode**: uses EnterPlanMode tool for detailed planning with user approval workflow
-- **Start now**: proceeds directly if design is simple enough
+### Phase 3: Explore Approaches
+
+**Simple idea?** Present 2-3 approaches yourself with trade-offs. Lead with recommendation. End with AskUserQuestion to choose.
+
+**Complex idea?** Launch 2-3 `code:architect` subagents in parallel via Agent tool, each exploring a different design angle. Pass each the idea, requirements from Phase 2, and codebase context from Phase 1. Summarize results. Lead with recommendation. End with AskUserQuestion.
+
+### Phase 4: Present Design
+
+Break into sections of 200-300 words. After each section, AskUserQuestion: "Looks good" / "Needs changes".
+
+Cover: architecture, components, data flow, error handling, testing.
+
+### Phase 5: Next Steps (MANDATORY)
+
+**You MUST reach this phase before the brainstorm ends.** Design approval in Phase 4 does NOT mean "start implementing". Always ask the user how to proceed.
+
+AskUserQuestion with options: "Write plan" / "Plan mode" / "Start now"
+
+- **Write plan**: save to `docs/plans/YYYY-MM-DD-<topic>-design.md`, then invoke `/planning:make`
+- **Plan mode**: use EnterPlanMode tool
+- **Start now**: implement directly with TaskCreate tracking
 
 ## Key Principles
 
-- **One question at a time** - do not overwhelm with multiple questions
-- **Multiple choice preferred** - easier to answer than open-ended when possible
-- **YAGNI ruthlessly** - remove unnecessary features from all designs, keep scope minimal
-- **Explore alternatives** - always propose 2-3 approaches before settling
-- **Incremental validation** - present design in sections, validate each
-- **Be flexible** - go back and clarify when something doesn't make sense
-- **Lead with recommendation** - have an opinion, explain why, but let user decide
-- **Duplication vs abstraction** - when code repeats, ask user: prefer duplication (simpler, no coupling) or abstraction (DRY but adds complexity)? explain trade-offs before deciding
+- One question at a time via AskUserQuestion tool — NEVER plain text
+- Context first — explore before asking, so questions are informed
+- Intent before implementation — scope/goals first, edge cases last
+- YAGNI ruthlessly — remove unnecessary features from designs
+- Lead with recommendation — have an opinion, let user decide
+- Incremental validation — section by section, validate each
 
-## Task Tracking
-
-When implementing after brainstorm:
-- Track implementation tasks using available task management tools (task lists, plan file checkboxes, or similar)
-- Mark each task as completed immediately when done (do not batch)
-- Keep user informed of progress through status updates
+<SELF-CHECK>
+Before EVERY response, verify:
+1. Contains a question for the user? → MUST use AskUserQuestion tool, NOT plain text
+2. Multiple questions? → MUST be exactly ONE
+3. Ends with "let me know" or "?" → REWRITE to end with AskUserQuestion tool call
+4. Asking implementation details before understanding intent? → REWRITE to ask scope/goals
+5. About to call Write, Edit, or any code-generating tool? → STOP. You are in brainstorm mode. Go to Phase 5 and ask the user how to proceed.
+If ANY check fails, REWRITE before sending.
+</SELF-CHECK>

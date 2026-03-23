@@ -1,7 +1,7 @@
 ---
 description: Create structured implementation plan in docs/plans/
 argument-hint: describe the feature or task to plan
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task, EnterPlanMode, TaskCreate, TaskUpdate, TaskList
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task, EnterPlanMode, TaskCreate, TaskUpdate, TaskList, Skill
 ---
 
 # Implementation Plan Creation
@@ -118,6 +118,14 @@ check `docs/plans/` for existing files, then create `docs/plans/yyyymmdd-<task-n
 ```markdown
 # [Plan Title]
 
+> **For Claude:** use `/planning:execute` to implement this plan task-by-task with fresh subagents.
+
+**Goal:** [one sentence describing what this builds]
+
+**Architecture:** [2-3 sentences about approach]
+
+**Tech Stack:** [key technologies/libraries]
+
 ## Overview
 - clear description of the feature/change being implemented
 - problem it solves and key benefits
@@ -179,7 +187,7 @@ Task structure guidelines:
   - include both success and error scenarios in tests
   - list tests as SEPARATE checklist items, not bundled with implementation
 
-Example (NOTICE: Files block + tests as separate checklist items):
+Example for Regular approach (NOTICE: Files block + tests as separate checklist items):
 
 ### Task 1: Add password hashing utility
 
@@ -192,6 +200,34 @@ Example (NOTICE: Files block + tests as separate checklist items):
 - [ ] write tests for HashPassword (success + error cases)
 - [ ] write tests for VerifyPassword (success + error cases)
 - [ ] run tests - must pass before task 2
+
+Example for TDD approach (NOTICE: explicit test-first → verify fail → implement → verify pass):
+
+### Task 1: Add password hashing utility
+
+**Files:**
+- Create: `src/auth/hash`
+- Test: `src/auth/hash_test`
+
+**Step 1: Write the failing test**
+```
+// test code that defines expected behavior
+```
+
+**Step 2: Run test to verify it fails**
+Run: `go test ./src/auth/...`
+Expected: FAIL — function not defined
+
+**Step 3: Write minimal implementation**
+```
+// implementation code
+```
+
+**Step 4: Run test to verify it passes**
+Run: `go test ./src/auth/...`
+Expected: PASS
+
+Example for Regular approach (continued):
 
 ### Task 2: Add user registration endpoint
 
@@ -263,16 +299,18 @@ then use AskUserQuestion:
     "question": "Plan created. What's next?",
     "header": "Next step",
     "options": [
+      {"label": "Execute with subagents", "description": "Run /planning:execute for task-by-task execution with fresh subagents"},
       {"label": "Interactive review", "description": "Open plan in editor for manual annotation and feedback loop"},
+      {"label": "Start implementation", "description": "Begin with task 1 directly"},
       {"label": "Auto review", "description": "Launch AI plan-review agent for automated analysis"},
-      {"label": "Start implementation", "description": "Commit plan and begin with task 1"},
-      {"label": "Done", "description": "Commit plan to git, no further action"}
+      {"label": "Done", "description": "No further action"}
     ],
     "multiSelect": false
   }]
 }
 ```
 
+- **Execute with subagents**: commit plan, then invoke `/planning:execute <plan-file-path>` to run each task via fresh subagents with automatic code review
 - **Interactive review**: run `python3 $CLAUDE_PLUGIN_ROOT/hooks/plan-annotate.py <plan-file-path>` via Bash.
   the script opens a copy of the plan in $EDITOR via kitty overlay. if the user makes annotations,
   it outputs a unified diff to stdout. when diff output is present:
@@ -281,8 +319,8 @@ then use AskUserQuestion:
   3. run `python3 $CLAUDE_PLUGIN_ROOT/hooks/plan-annotate.py <plan-file-path>` again
   4. repeat until no diff output (user closed editor without changes)
   when the annotation loop completes, ask again with the remaining options (minus "Interactive review")
+- **Start implementation**: commit plan with message like "docs: add <topic> implementation plan", then begin with task 1 directly
 - **Auto review**: launch plan-review agent (Task tool with subagent_type=plan-review). After review completes, ask again with the same options (minus "Auto review")
-- **Start implementation**: commit plan with message like "docs: add <topic> implementation plan", then begin with task 1
 - **Done**: commit plan with message like "docs: add <topic> implementation plan", stop
 
 ## execution enforcement

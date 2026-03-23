@@ -3,9 +3,9 @@
   "description": "Analytical thinking tools - dialectic analysis, bias elimination, codex consultation",
   "version": "1.1.0",
   "author": {
-    "name": "Umputun"
+    "name": "aohoyd"
   },
-  "homepage": "https://github.com/umputun/cc-thingz",
-  "repository": "https://github.com/umputun/cc-thingz",
+  "homepage": "https://github.com/aohoyd/cc-utils",
+  "repository": "https://github.com/aohoyd/cc-utils",
   "license": "MIT"
 }

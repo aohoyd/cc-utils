@@ -1,7 +1,7 @@
 {
-  "name": "umputun-cc-thingz",
+  "name": "aohoyd-cc-utils",
   "owner": {
-    "name": "Umputun"
+    "name": "aohoyd"
   },
   "plugins": [
     {
@@ -15,9 +15,14 @@
       "description": "PR review, interactive git diff annotation review, and writing style guide"
     },
     {
+      "name": "code",
+      "source": "./plugins/code",
+      "description": "Code analysis and review — parallel code review, codebase exploration, and architecture design agents"
+    },
+    {
       "name": "planning",
       "source": "./plugins/planning",
-      "description": "Structured implementation planning with interactive annotation review"
+      "description": "Structured implementation planning with plan execution via subagents and interactive annotation review"
     },
     {
       "name": "release-tools",

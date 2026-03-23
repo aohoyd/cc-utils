@@ -1,4 +1,4 @@
-# cc-thingz
+# cc-utils
 
 Things to make [Claude Code](https://claude.ai/code) even better — hooks, skills, and commands, organized as a marketplace of independent plugins.
 
@@ -8,15 +8,16 @@ This is an unapologetically opinionated set. Every skill here is something I act
 
 Add the marketplace, then install the plugins you want:
 
-    /plugin marketplace add umputun/cc-thingz
+    /plugin marketplace add aohoyd/cc-utils
 
-    /plugin install brainstorm@umputun-cc-thingz
-    /plugin install review@umputun-cc-thingz
-    /plugin install planning@umputun-cc-thingz
-    /plugin install release-tools@umputun-cc-thingz
-    /plugin install thinking-tools@umputun-cc-thingz
-    /plugin install skill-eval@umputun-cc-thingz
-    /plugin install workflow@umputun-cc-thingz
+    /plugin install brainstorm@aohoyd-cc-utils
+    /plugin install code@aohoyd-cc-utils
+    /plugin install review@aohoyd-cc-utils
+    /plugin install planning@aohoyd-cc-utils
+    /plugin install release-tools@aohoyd-cc-utils
+    /plugin install thinking-tools@aohoyd-cc-utils
+    /plugin install skill-eval@aohoyd-cc-utils
+    /plugin install workflow@aohoyd-cc-utils
 
 Test a plugin locally:
 
@@ -27,9 +28,19 @@ Test a plugin locally:
 
 Copy the files you want to your Claude Code config directory manually.
 
-**brainstorm** — skill:
+**brainstorm** — skill + command:
 ```bash
 cp -r plugins/brainstorm/skills/do ~/.claude/skills/
+cp plugins/brainstorm/commands/do.md ~/.claude/commands/
+```
+
+**code** — skill + agents:
+```bash
+cp -r plugins/code/skills/review ~/.claude/skills/
+cp plugins/code/commands/review.md ~/.claude/commands/
+cp plugins/code/agents/code-explorer.md ~/.claude/agents/
+cp plugins/code/agents/code-architect.md ~/.claude/agents/
+cp plugins/code/agents/code-reviewer.md ~/.claude/agents/
 ```
 
 **review** — skills (review-pr + git-review + writing-style):
@@ -42,9 +53,11 @@ chmod +x ~/.claude/skills/git-review/scripts/git-review.py
 
 Note: update the `/review:writing-style` reference inside `pr/SKILL.md` to `/writing-style` when installed manually.
 
-**planning** — command + hook:
+**planning** — commands + agents + hook:
 ```bash
 cp plugins/planning/commands/make.md ~/.claude/commands/
+cp plugins/planning/commands/execute.md ~/.claude/commands/
+cp plugins/planning/agents/task-executor.md ~/.claude/agents/
 cp plugins/planning/hooks/plan-annotate.py ~/.claude/scripts/
 chmod +x ~/.claude/scripts/plan-annotate.py
 ```
@@ -117,8 +130,9 @@ Restart Claude Code for changes to take effect.
 | Plugin | Description |
 |--------|-------------|
 | [brainstorm](#brainstorm) | Collaborative design dialogue — idea to approaches to design to plan |
+| [code](#code) | Code analysis and review — parallel code review, codebase exploration, architecture design |
 | [review](#review) | PR review + interactive git diff annotation review + writing style guide |
-| [planning](#planning) | Structured implementation planning with interactive annotation review |
+| [planning](#planning) | Structured implementation planning with plan execution and interactive annotation review |
 | [release-tools](#release-tools) | Release workflow — auto-versioning, release notes, changelog |
 | [thinking-tools](#thinking-tools) | Analytical thinking — dialectic analysis, root cause investigation, codex consultation |
 | [skill-eval](#skill-eval) | Forces skill evaluation before every response |
@@ -126,18 +140,39 @@ Restart Claude Code for changes to take effect.
 
 ### brainstorm
 
-Collaborative design skill. Invoke with `/brainstorm:do` or trigger phrases like "brainstorm", "let's brainstorm", "help me design", "explore options for", etc.
+Collaborative design skill with codebase-aware exploration. Invoke with `/brainstorm:do` or trigger phrases like "brainstorm", "let's brainstorm", "help me design", "explore options for", "I have an idea", etc.
 
 | Component | Trigger | Description |
 |-----------|---------|-------------|
 | skill | `/brainstorm:do` | Collaborative design dialogue — idea → approaches → design → plan |
+| command | `/brainstorm:do <desc>` | Entry point for brainstorm skill |
 
 Guides a 4-phase dialogue to turn ideas into designs:
 
-1. **Understand** — gathers project context, asks questions one at a time (multiple choice preferred)
-2. **Explore Approaches** — proposes 2-3 options with trade-offs, leads with recommendation
-3. **Present Design** — breaks design into sections of 200-300 words, validates each incrementally
-4. **Next Steps** — offers to write a plan (`/planning:make`), enter plan mode, or start implementing
+1. **Understand** — reads project context, launches `code:explorer` subagents in parallel to gather codebase context, asks questions one at a time (multiple choice preferred, uses AskUserQuestion tool exclusively)
+2. **Explore Approaches** — for simple solutions, proposes 2-3 options; for complex ones, launches `code:architect` subagents in parallel. Leads with recommendation
+3. **Present Design** — breaks design into sections of 200-300 words, validates each incrementally via AskUserQuestion
+4. **Next Steps** — offers to save design doc and create plan (`/planning:make`), enter plan mode, or start implementing
+
+### code
+
+Code analysis and review tools — parallel code review, codebase exploration, and architecture design agents. Used by brainstorm and planning plugins for codebase-aware workflows.
+
+| Component | Trigger | Description |
+|-----------|---------|-------------|
+| skill | `/code:review` | Parallel code review — launches 3 focused reviewer agents, deduplicates findings |
+| command | `/code:review [scope]` | Entry point for code review skill |
+| agent | `explorer` | Deep codebase analysis — traces execution paths, maps architecture layers |
+| agent | `architect` | Architecture design — analyzes patterns, produces implementation blueprints |
+| agent | `reviewer` | Code review — bugs, logic errors, security, conventions with confidence scoring |
+
+**code:review** — two modes: quick (single reviewer, used after individual tasks) and comprehensive (3 parallel reviewers with different focuses: simplicity/DRY, bugs/correctness, conventions/patterns). Consolidates findings, deduplicates, filters by confidence >= 80, groups by severity. Standalone trigger checks `git diff` for unstaged changes.
+
+**code-explorer** — traces feature implementations from entry points through all abstraction layers. Outputs file:line references, execution flow, architecture insights, and essential file lists. Used by brainstorm for codebase context gathering.
+
+**code-architect** — designs feature architectures by analyzing existing codebase patterns. Outputs decisive blueprints with component design, implementation maps, data flows, and build sequences. Used by brainstorm for approach exploration on complex features.
+
+**code-reviewer** — reviews code against CLAUDE.md guidelines and language idioms. Confidence-based filtering (0-100 scale, only reports >= 80). Groups findings by severity with concrete fix suggestions.
 
 ### review
 
@@ -168,20 +203,24 @@ Run tests: `python3 plugins/review/skills/git-review/scripts/git-review.py --tes
 
 ### planning
 
-Structured implementation planning with interactive annotation review.
+Structured implementation planning with plan execution via subagents and interactive annotation review.
 
 | Component | Trigger | Description |
 |-----------|---------|-------------|
 | command | `/planning:make <desc>` | Structured implementation plan with interactive review loop |
+| command | `/planning:execute [path]` | Execute plan task-by-task with fresh subagents and automatic code review |
 | hook | `PreToolUse` / CLI | Plan annotation in `$EDITOR` with diff-based feedback loop |
 | agent | `plan-review` | Automated plan quality review — completeness, over-engineering, testing |
+| agent | `task-executor` | Executes individual plan tasks following TDD workflow |
 
 **plan command** — creates a plan file in `docs/plans/yyyymmdd-<task-name>.md` through interactive context gathering:
 - **Step 0** — parses intent and explores codebase for relevant context
 - **Step 1** — asks focused questions one at a time (goal, scope, constraints, testing approach, title)
 - **Step 1.5** — proposes 2-3 implementation approaches with trade-offs (skipped if obvious)
-- **Step 2** — creates the plan file with tasks, file lists, test requirements, and progress tracking
-- **Step 3** — offers interactive review (opens plan in `$EDITOR` via plan-annotate), auto review, start implementation, or done
+- **Step 2** — creates the plan file with tasks, file lists, test requirements, and progress tracking. Supports both Regular (checkbox) and TDD (test-first with verify fail/pass steps) task formats
+- **Step 3** — offers interactive review, auto review, execute with subagents (`/planning:execute`), start implementation directly, or done
+
+**execute command** — runs an implementation plan task-by-task using fresh `task-executor` subagents (one per task, mandatory). After each task, launches a quick `code:reviewer` to catch issues early and auto-fixes them. After all tasks complete, runs a comprehensive `code:review` with 3 parallel reviewers. Handles failures gracefully — stops, reports, and asks user to retry/skip/stop.
 
 **plan-annotate.py** — interactive plan annotation tool. Opens plans in your `$EDITOR` via a terminal overlay (tmux popup, kitty overlay, or wezterm split-pane), lets you annotate directly, and feeds a unified diff back to Claude so it revises the plan. Two modes:
 
@@ -264,7 +303,7 @@ Session workflow helpers for knowledge capture, confusion handling, course corre
 
 ## Credits
 
-Some skills and scripts were influenced by or adapted from community ideas, blog posts, and open-source examples. Sources were not tracked accurately from the start. If you recognize your work and want proper attribution, please [open an issue](https://github.com/umputun/cc-thingz/issues) — I'll fix it.
+Some skills and scripts were influenced by or adapted from community ideas, blog posts, and open-source examples. Sources were not tracked accurately from the start. If you recognize your work and want proper attribution, please [open an issue](https://github.com/aohoyd/cc-utils/issues) — I'll fix it.
 
 ## License
 

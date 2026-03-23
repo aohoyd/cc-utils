@@ -10,7 +10,7 @@ Things to make Claude Code even better — hooks, skills, and commands, organize
 
 - **README.md must be kept up to date** — whenever a new component, script, or configuration is added, update README.md with a description of what it does and how to use it.
 - Content is MIT-licensed.
-- This is a personal project by Umputun (GitHub).
+- This is a personal project by aohoyd (GitHub).
 - **No personal configuration** — scripts and configs must be generic and not contain hardcoded personal paths, editor preferences, or machine-specific settings. Use environment variables (e.g., `$EDITOR`) for user-specific values.
 - **Self-contained documentation** — do not reference external custom skills, actions, or configurations that exist only in a user's personal Claude Code setup. All documentation must refer only to what exists in this repository.
 
@@ -25,14 +25,15 @@ Things to make Claude Code even better — hooks, skills, and commands, organize
 
 - `.claude-plugin/marketplace.json` — marketplace catalog listing all plugins
 - `plugins/` — each subdirectory is an independent plugin:
-  - `plugins/brainstorm/` — collaborative design skill
+  - `plugins/brainstorm/` — collaborative design skill + command
+  - `plugins/code/` — code review skill + code-explorer, code-architect, code-reviewer agents
   - `plugins/review/` — PR review skill + writing style skill
-  - `plugins/planning/` — plan command + plan-annotate hook
+  - `plugins/planning/` — plan command + execute command + task-executor agent + plan-annotate hook
   - `plugins/release-tools/` — release workflow + last-tag skills
   - `plugins/thinking-tools/` — dialectic analysis + root-cause-investigator skills
   - `plugins/skill-eval/` — skill evaluation hook
   - `plugins/workflow/` — session workflow helpers (learn, clarify, wrong, md-copy, txt-copy)
-- Each plugin has its own `.claude-plugin/plugin.json`, and standard subdirectories (`skills/`, `commands/`, `hooks/`) as needed.
+- Each plugin has its own `.claude-plugin/plugin.json`, and standard subdirectories (`skills/`, `commands/`, `hooks/`, `agents/`) as needed.
 
 ## Testing
 
