@@ -66,9 +66,13 @@ Update tasks as you go: `TaskUpdate(taskId, status="in_progress")` when starting
 
 ### Step 4. Create branch
 
-Run: `bash ${CLAUDE_PLUGIN_ROOT}/skills/exec/scripts/create-branch.sh <plan-file-path>`
+**MANDATORY**: Run the script below. Do NOT create the branch manually — the script strips the date prefix from the plan filename (e.g., `20260329-feature-name.md` → branch `feature-name`).
 
-This creates a feature branch (derived from plan file name) if currently on main/master. If already on a feature branch, it stays on it. Report the branch name to the user.
+```
+bash ${CLAUDE_PLUGIN_ROOT}/skills/exec/scripts/create-branch.sh <plan-file-path>
+```
+
+The script creates a feature branch if currently on main/master, or stays on the current branch if already on a feature branch. Capture and use the branch name it outputs.
 
 ### Step 5. Initialize progress file
 
