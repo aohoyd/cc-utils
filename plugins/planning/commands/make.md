@@ -265,7 +265,8 @@ then use AskUserQuestion:
     "options": [
       {"label": "Interactive review", "description": "Open plan in editor for manual annotation and feedback loop"},
       {"label": "Auto review", "description": "Launch AI plan-review agent for automated analysis"},
-      {"label": "Start implementation", "description": "Commit plan and begin with task 1"},
+      {"label": "Start implementation", "description": "Commit plan and begin implementing task by task (interactive, in this session)"},
+      {"label": "Execute autonomously", "description": "Commit plan and run /planning:exec for autonomous execution with reviews"},
       {"label": "Done", "description": "Commit plan to git, no further action"}
     ],
     "multiSelect": false
@@ -282,7 +283,8 @@ then use AskUserQuestion:
   4. repeat until no diff output (user closed editor without changes)
   when the annotation loop completes, ask again with the remaining options (minus "Interactive review")
 - **Auto review**: launch plan-review agent (Task tool with subagent_type=plan-review). After review completes, ask again with the same options (minus "Auto review")
-- **Start implementation**: commit plan with message like "docs: add <topic> implementation plan", then begin with task 1
+- **Start implementation**: commit plan with message like "docs: add <topic> implementation plan", then begin implementing task 1 interactively in this session
+- **Execute autonomously**: commit plan, then invoke `/planning:exec <plan-file-path>` for autonomous execution with multi-phase review
 - **Done**: commit plan with message like "docs: add <topic> implementation plan", stop
 
 ## execution enforcement
